@@ -6,10 +6,9 @@ from transformers import CLIPTokenizer, AutoTokenizer
 from accelerate.utils import ProjectConfiguration
 from diffusers.optimization import get_scheduler
 from main.utils import SDTextDataset, cycle 
-from main.sd_unified_model import SDUniModel
+from main.sd_unified_robust_model import SDUniRobustModel
 from accelerate.utils import set_seed
 from accelerate import Accelerator
-from accelerate.logging import get_logger
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     FullStateDictConfig,
@@ -21,11 +20,6 @@ import wandb
 import torch 
 import time 
 import os
-from torch.utils.tensorboard import SummaryWriter
-import numpy as np
-import pdb
-logger = get_logger(__name__)
-
 
 class Trainer:
     def __init__(self, args):
@@ -46,35 +40,26 @@ class Trainer:
         set_seed(args.seed + accelerator.process_index)
 
         print(accelerator.state)
-        logger.info(accelerator.state, main_process_only=True)
 
         if accelerator.is_main_process:
-            self.output_path = os.path.join(args.output_path, f"time_{int(time.time())}_seed{args.seed}")
-            os.makedirs(self.output_path, exist_ok=False)
+            output_path = os.path.join(args.output_path, f"time_{int(time.time())}_seed{args.seed}")
+            os.makedirs(output_path, exist_ok=False)
 
             self.cache_dir = os.path.join(args.cache_dir, f"time_{int(time.time())}_seed{args.seed}")
             os.makedirs(self.cache_dir, exist_ok=False)
 
-            self.log_path = os.path.join(args.log_path, f"time_{int(time.time())}_seed{args.seed}")
-            os.makedirs(self.log_path, exist_ok=True)
+            self.output_path = output_path
 
-            try:
-                run = wandb.init(config=args, dir=self.log_path, **{"mode": args.wandb_mode, "entity": args.wandb_entity, "project": args.wandb_project})
-            except Exception as e:
-                print(f"Failed to initialize wandb: {e}")
-                logger.info(f"Failed to initialize wandb: {e}", main_process_only=True)
-                run = wandb.init(config=args, dir=self.log_path, **{"mode": "offline"})
+            os.makedirs(args.log_path, exist_ok=True)
 
+            run = wandb.init(config=args, dir=args.log_path, **{"mode": "online", "entity": args.wandb_entity, "project": args.wandb_project})
             wandb.run.log_code(".")
             wandb.run.name = args.wandb_name
             print(f"run dir: {run.dir}")
-            logger.info(f"run dir: {run.dir}", main_process_only=True)
             self.wandb_folder = run.dir
             os.makedirs(self.wandb_folder, exist_ok=True)
 
-            self.writer = SummaryWriter(log_dir=self.log_path + "/tensorboard")
-
-        self.model = SDUniModel(args, accelerator)
+        self.model = SDUniRobustModel(args, accelerator)
         self.max_grad_norm = args.max_grad_norm
         self.denoising = args.denoising
         self.step = 0 
@@ -499,9 +484,6 @@ class Trainer:
                 wandb_loss_dict,
                 step=self.step
             )
-            self.writer.add_scalars("loss", wandb_loss_dict, self.step)
-            print(f'step: {self.step}, ' + ', '.join([f'{k}: {v}' for k, v in wandb_loss_dict.items()]))
-            logger.info(f'step: {self.step}, ' + ', '.join([f'{k}: {v}' for k, v in wandb_loss_dict.items()]), main_process_only=True)
 
         if visual:
             if not self.args.gan_alone:
@@ -514,8 +496,8 @@ class Trainer:
                 log_dict["original_clean_image"] = accelerator.gather(log_dict["original_clean_image"])
                 log_dict['denoising_timestep'] = accelerator.gather(log_dict['denoising_timestep'])
 
-            if self.cls_on_clean_image:
-                log_dict['real_image'] = accelerator.gather(real_train_dict['images'])
+            # if self.cls_on_clean_image:
+            #     log_dict['real_image'] = accelerator.gather(real_train_dict['images'])
 
         if accelerator.is_main_process and visual:
             with torch.no_grad():
@@ -549,17 +531,8 @@ class Trainer:
                         "difference": wandb.Image(difference),
                         "difference_norm_grid": wandb.Image(difference_scale_grid),
                     }
-                    tensorboard_dict = {
-                        "dmtrain_pred_real_image": dmtrain_pred_real_image_grid,
-                        "dmtrain_pred_fake_image": dmtrain_pred_fake_image_grid,
-                        "loss_dm": loss_dict['loss_dm'].item(),
-                        "dmtrain_gradient_norm": dmtrain_gradient_norm,
-                        "difference": difference,
-                        "difference_norm_grid": difference_scale_grid
-                    }
                 else:
-                    data_dict = {}
-                    tensorboard_dict = {}
+                    data_dict = {} 
 
                 generated_image = log_dict['generated_image']
                 generated_image_grid = prepare_images_for_saving(generated_image, resolution=self.resolution, grid_size=self.grid_size)
@@ -569,12 +542,6 @@ class Trainer:
 
                 data_dict.update({
                     "generated_image": wandb.Image(generated_image_grid),
-                    "loss_fake_mean": loss_dict['loss_fake_mean'].item(),
-                    "generator_grad_norm": generator_grad_norm.item(),
-                    "guidance_grad_norm": guidance_grad_norm.item(),
-                })
-                tensorboard_dict.update({
-                    "generated_image": generated_image_grid,
                     "loss_fake_mean": loss_dict['loss_fake_mean'].item(),
                     "generator_grad_norm": generator_grad_norm.item(),
                     "guidance_grad_norm": guidance_grad_norm.item(),
@@ -595,14 +562,6 @@ class Trainer:
                             "denoising_timestep": wandb.Image(denoising_timestep_grid)
                         }
                     )
-                    tensorboard_dict.update(
-                        {
-                            "original_clean_image": origianl_clean_image_grid,
-                            "original_image_mean": original_image_mean.item(),
-                            "original_image_std": original_image_std.item(),
-                            "denoising_timestep": denoising_timestep_grid
-                        }
-                    )
 
                 if self.cls_on_clean_image:
                     data_dict['guidance_cls_loss'] = loss_dict['guidance_cls_loss'].item()
@@ -616,21 +575,14 @@ class Trainer:
                     hist_pred_realism_on_fake = draw_probability_histogram(pred_realism_on_fake.cpu().numpy())
                     hist_pred_realism_on_real = draw_probability_histogram(pred_realism_on_real.cpu().numpy())
 
-                    real_image = log_dict['real_image']
-                    real_image_grid = prepare_images_for_saving(real_image, resolution=self.resolution, grid_size=self.grid_size)
+                    # real_image = log_dict['real_image']
+                    # real_image_grid = prepare_images_for_saving(real_image, resolution=self.resolution, grid_size=self.grid_size)
 
                     data_dict.update(
                         {
                             "hist_pred_realism_on_fake": wandb.Image(hist_pred_realism_on_fake),
                             "hist_pred_realism_on_real": wandb.Image(hist_pred_realism_on_real),
-                            "real_image": wandb.Image(real_image_grid)
-                        }
-                    )
-                    tensorboard_dict.update(
-                        {
-                            "hist_pred_realism_on_fake": hist_pred_realism_on_fake,
-                            "hist_pred_realism_on_real": hist_pred_realism_on_real,
-                            "real_image": real_image_grid
+                            # "real_image": wandb.Image(real_image_grid)
                         }
                     )
 
@@ -639,14 +591,6 @@ class Trainer:
                     data_dict,
                     step=self.step
                 )
-                for key, value in tensorboard_dict.items():
-                    if 'grid' not in key and ('mean' in key or 'std' in key or 'norm' in key or 'loss' in key):
-                        print('writing scalar {}'.format(key)) 
-                        self.writer.add_scalar(key, value, self.step)
-                    else:
-                        if isinstance(value, (torch.Tensor, np.ndarray)):
-                            print('writing image {}'.format(key))
-                            self.writer.add_image(key, value.transpose(2, 0, 1), self.step)
         
         self.accelerator.wait_for_everyone()
 
@@ -666,7 +610,6 @@ class Trainer:
                     self.previous_time = current_time
 
             self.step += 1
-        self.accelerator.end_training()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -686,8 +629,6 @@ def parse_args():
     parser.add_argument("--wandb_project", type=str)
     parser.add_argument("--wandb_iters", type=int, default=100)
     parser.add_argument("--wandb_name", type=str, required=True)
-    parser.add_argument("--wandb_mode", type=str, choices=["online", "offline"], default="online")
-    parser.add_argument("--log_locally", action="store_true", help="create logger locally")
     parser.add_argument("--max_grad_norm", type=float, default=10.0, help="max grad norm for network")
     parser.add_argument("--warmup_step", type=int, default=500, help="warmup step for network")
     parser.add_argument("--min_step_percent", type=float, default=0.02, help="minimum step percent for training")

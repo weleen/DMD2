@@ -103,7 +103,7 @@ class SDGuidance(nn.Module):
 
             if accelerator.is_local_main_process:
                 print("Note that we randomly initialized a bunch of parameters. FSDP mode 4 hybrid_shard will have non-synced parameters across nodes which would lead to training problems. The current solution is to save the checkpoint 0 and resume")
-
+            # TODO: try DINOv2 as discriminator, current discriminator is performed on the bottleneck layer of the UNet, move it to the denoised image part.
             if args.sdxl:
                 self.cls_pred_branch = nn.Sequential(
                     nn.Conv2d(kernel_size=4, in_channels=1280, out_channels=1280, stride=2, padding=1), # 32x32 -> 16x16 

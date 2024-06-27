@@ -9,7 +9,7 @@ from peft import LoraConfig
 from torch import nn
 import torch 
 
-class SDUniModel(nn.Module):
+class SDUniRobustModel(nn.Module):
     def __init__(self, args, accelerator):
         super().__init__()
 
@@ -95,10 +95,6 @@ class SDUniModel(nn.Module):
             if 'stable-diffusion-xl' in args.model_id:
                 self.vae = AutoencoderTiny.from_pretrained(
                     "madebyollin/taesdxl", torch_dtype=torch.float32).float().to(accelerator.device)
-            elif 'stable-diffusion-v' in args.model_id:
-                # use taesd for v1.x
-                self.vae = AutoencoderTiny.from_pretrained(
-                    "madebyollin/taesd", torch_dtype=torch.float32).float().to(accelerator.device)
             else:
                 raise NotImplementedError()
         else:
