@@ -30,4 +30,4 @@ torchrun --nnodes 1 --nproc_per_node=8 --master_port 30520 main/train_sd.py \
     --dfake_gen_update_ratio 10 \
     --gradient_checkpointing 
 
-# bash laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch.sh log/sdv15 yimingwu0 DMD2
+# bash experiments/sdv1.5/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch.sh log/sdv15 yimingwu0 DMD2

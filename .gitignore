@@ -183,3 +183,5 @@ ignored_cache
 
 *.jpg
 *.png
+
+log/

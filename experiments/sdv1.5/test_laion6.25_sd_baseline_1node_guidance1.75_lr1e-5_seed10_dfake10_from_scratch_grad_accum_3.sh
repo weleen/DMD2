@@ -3,8 +3,8 @@ export CHECKPOINT_PATH=$1
 export WANDB_ENTITY=$2
 export WANDB_PROJECT=$3
 
-python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch/cache/time_1719445173_seed10 \
-    --wandb_name test_laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch \
+python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch_gradient_accum_3/cache/time_1719753487_seed10 \
+    --wandb_name test_laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch_grad_accum_3 \
     --wandb_entity $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
     --image_resolution 512 \

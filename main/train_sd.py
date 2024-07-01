@@ -40,13 +40,13 @@ class Trainer:
             # with accelerator.accumulate(model): is not supported since multiple forward/backward passes in training loop 
             gradient_accumulation_steps=args.gradient_accumulation_steps, 
             mixed_precision=args.mixed_precision,
-            log_with=["wandb", "tensorboard"],
+            log_with="wandb",
             project_config=accelerator_project_config,
             kwargs_handlers=None,
             dispatch_batches=False
         )
         set_seed(args.seed + accelerator.process_index)
-        logger.info(f"args: {args}")
+        logger.info(f"args: {args}", main_process_only=True)
 
         logger.info(accelerator.state)
 
@@ -225,18 +225,33 @@ class Trainer:
             weight_decay=0.01  # pytorch's default 
         )
 
+        # rescale step_rules
+        if args.gradient_accumulation_steps > 1 and args.step_rules is not None:
+            new_step_rules = []
+            old_step_rules = args.step_rules.split(',')
+            for val in old_step_rules:
+                if ":" in val:
+                    ratio_milestone = val.split(":")
+                    ratio_milestone[-1] = str(int(ratio_milestone[-1]) * args.gradient_accumulation_steps)
+                    new_step_rules.append(":".join(ratio_milestone))
+                else:
+                    new_step_rules.append(val)
+            args.step_rules = ",".join(new_step_rules)
+
         # actually this scheduler is not very useful (it warms up from 0 to max_lr in 500 / num_gpu steps), but we keep it here for consistency
         self.scheduler_generator = get_scheduler(
-            "constant_with_warmup",
+            name=args.lr_scheduler,
             optimizer=self.optimizer_generator,
             num_warmup_steps=args.warmup_step * args.gradient_accumulation_steps,
-            num_training_steps=args.train_iters * args.gradient_accumulation_steps
+            num_training_steps=args.train_iters * args.gradient_accumulation_steps,
+            step_rules=args.step_rules
         )
         self.scheduler_guidance = get_scheduler(
-            "constant_with_warmup",
+            name=args.lr_scheduler,
             optimizer=self.optimizer_guidance,
-            num_warmup_steps=args.warmup_step,
-            num_training_steps=args.train_iters 
+            num_warmup_steps=args.warmup_step * args.gradient_accumulation_steps,
+            num_training_steps=args.train_iters * args.gradient_accumulation_steps,
+            step_rules=args.step_rules
         )
 
         if self.fsdp: 
@@ -703,48 +718,46 @@ def parse_args():
     parser.add_argument("--cache_dir", type=str, default="/mnt/localssd/cache")
     parser.add_argument("--max_checkpoint", type=int, default=150)
     parser.add_argument("--generator_ckpt_path", type=str)
+    parser.add_argument("--log_iters", type=int, default=100)
+    parser.add_argument("--log_loss", action="store_true", help="log loss at every iteration")
+    parser.add_argument("--grid_size", type=int, default=2)
     # model
     parser.add_argument("--model_id", type=str, default="runwayml/stable-diffusion-v1-5")
+    parser.add_argument("--resolution", type=int, default=32)
+    parser.add_argument("--latent_resolution", type=int, default=64)
+    parser.add_argument("--latent_channel", type=int, default=4)
     parser.add_argument("--ckpt_only_path", type=str, default=None, help="checkpoint (no optimizer state) only path")
     parser.add_argument("--resume", type=str, default=None, help="resume training from a checkpoint path")
     parser.add_argument("--sdxl", action="store_true")
     parser.add_argument("--tiny_vae", action="store_true")
+    parser.add_argument("--cls_on_clean_image", action="store_true")
     # distributed training
     parser.add_argument("--fsdp", action="store_true")
+    parser.add_argument("--mixed_precision", type=str, choices=["no","fp16","bf16","fp8"], default="no")
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
     parser.add_argument("--gradient_checkpointing", action="store_true", help="apply gradient checkpointing for dfake and generator. this might be a better option than FSDP")
-    # training
-    parser.add_argument("--train_iters", type=int, default=1000000)
-    parser.add_argument("--log_iters", type=int, default=100)
-    parser.add_argument("--batch_size", type=int, default=1)
+    # training scheduler
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--resolution", type=int, default=32)
+    parser.add_argument("--train_iters", type=int, default=1000000)
     parser.add_argument("--lr", type=float, default=1e-5)
-    parser.add_argument("--initialie_generator", action="store_true")
-    parser.add_argument("--max_grad_norm", type=float, default=10.0, help="max grad norm for network")
+    parser.add_argument("--lr_scheduler", type=str, choices=["linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup", "constant", "piecewise_constant"], default="constant_with_warmup")
     parser.add_argument("--warmup_step", type=int, default=500, help="warmup step for network")
-    parser.add_argument("--min_step_percent", type=float, default=0.02, help="minimum step percent for training")
-    parser.add_argument("--max_step_percent", type=float, default=0.98, help="maximum step percent for training")
+    parser.add_argument("--step_rules", type=str, default=None, help="step rule for piecewise constant")
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--use_fp16", action="store_true")
-    parser.add_argument("--mixed_precision", type=str, choices=["no","fp16","bf16","fp8"], default="no")
-    parser.add_argument("--num_train_timesteps", type=int, default=1000)
-    parser.add_argument("--train_prompt_path", type=str)
-    parser.add_argument("--latent_resolution", type=int, default=64)
-    parser.add_argument("--real_guidance_scale", type=float, default=6.0)
-    parser.add_argument("--fake_guidance_scale", type=float, default=1.0)
-    parser.add_argument("--grid_size", type=int, default=2)
-    parser.add_argument("--log_loss", action="store_true", help="log loss at every iteration")
+    # dataloader
+    parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--num_workers", type=int, default=12)
-    parser.add_argument("--latent_channel", type=int, default=4)
-    parser.add_argument("--dfake_gen_update_ratio", type=int, default=1)
+    parser.add_argument("--train_prompt_path", type=str)
+    parser.add_argument("--real_image_path", type=str)
+    # optimizer
     parser.add_argument("--generator_lr", type=float)
     parser.add_argument("--guidance_lr", type=float)
-    parser.add_argument("--cls_on_clean_image", action="store_true")
+    # training
+    parser.add_argument("--max_grad_norm", type=float, default=10.0, help="max grad norm for network")
+    parser.add_argument("--dfake_gen_update_ratio", type=int, default=1)
     parser.add_argument("--gen_cls_loss", action="store_true")
     parser.add_argument("--gen_cls_loss_weight", type=float, default=0)
     parser.add_argument("--guidance_cls_loss_weight", type=float, default=0)
-    parser.add_argument("--conditioning_timestep", type=int, default=999)
     parser.add_argument("--dm_loss_weight", type=float, default=1.0)
 
     parser.add_argument("--denoising", action="store_true", help="train the generator for denoising")
@@ -756,7 +769,6 @@ def parse_args():
     parser.add_argument("--diffusion_gan_max_timestep", type=int, default=0)
     parser.add_argument("--revision", type=str)
 
-    parser.add_argument("--real_image_path", type=str)
     parser.add_argument("--gan_alone", action="store_true", help="only use the gan loss without dmd")
     parser.add_argument("--backward_simulation", action="store_true")
 
@@ -765,6 +777,15 @@ def parse_args():
     parser.add_argument("--lora_alpha", type=float, default=8)
     parser.add_argument("--lora_dropout", type=float, default=0.0)
     
+    parser.add_argument("--initialie_generator", action="store_true")
+    parser.add_argument("--min_step_percent", type=float, default=0.02, help="minimum step percent for training")
+    parser.add_argument("--max_step_percent", type=float, default=0.98, help="maximum step percent for training")
+    parser.add_argument("--use_fp16", action="store_true")
+    parser.add_argument("--num_train_timesteps", type=int, default=1000)
+    parser.add_argument("--real_guidance_scale", type=float, default=6.0)
+    parser.add_argument("--fake_guidance_scale", type=float, default=1.0)
+    parser.add_argument("--conditioning_timestep", type=int, default=999)
+
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
     if env_local_rank != -1 and env_local_rank != args.local_rank:
