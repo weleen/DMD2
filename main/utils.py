@@ -10,7 +10,8 @@ import textwrap
 import pickle 
 import torch 
 import copy 
-import os 
+import os
+import pathspec
 
 def prepare_images_for_saving(images_tensor, resolution, grid_size=4, range_type="neg1pos1"):
     if range_type != "uint8":
@@ -337,3 +338,20 @@ def extract_text_embeddings(batch, accelerator, text_encoder_one, text_encoder_t
     pooled_prompt_embeds = pooled_prompt_embeds.view(len(text_input_ids_one), -1) 
 
     return prompt_embeds, pooled_prompt_embeds
+
+
+def cp_projects(to_path):
+    if os.path.exists('./.gitignore'):
+        with open('./.gitignore', 'r') as fp:
+            ign = fp.read()
+    ign += '\n.git'
+    spec = pathspec.PathSpec.from_lines(pathspec.patterns.GitWildMatchPattern, ign.splitlines())
+    all_files = {os.path.join(root, name) for root, dirs, files in os.walk('./') for name in files}
+    matches = spec.match_files(all_files)
+    matches = set(matches)
+    to_cp_files = all_files - matches
+    for f in to_cp_files:
+        dirs = os.path.join(to_path, 'code', os.path.split(f[2:])[0])
+        if not os.path.exists(dirs):
+            os.makedirs(dirs)
+        os.system('cp %s %s' % (f, os.path.join(to_path, 'code', f[2:])))

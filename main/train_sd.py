@@ -93,8 +93,8 @@ class Trainer:
             guidance_path = os.path.join(ckpt_path, "pytorch_model_1.bin")
             logger.info(self.model.feedforward_model.load_state_dict(torch.load(generator_path, map_location="cpu"), strict=False))
             logger.info(self.model.guidance_model.load_state_dict(torch.load(guidance_path, map_location="cpu"), strict=False))
-
-            self.step = int(ckpt_path.replace("/", "").split("_")[-1])
+            if args.resume is not None:
+                self.step = int(ckpt_path.replace("/", "").split("_")[-1])
 
             if args.resume is not None:
                 # TODO: check if the optimizer state and scheduler are loaded correctly
@@ -290,6 +290,7 @@ class Trainer:
         # training info
         total_batch_size = args.batch_size * accelerator.num_processes * args.gradient_accumulation_steps
         self.train_iters = args.train_iters * args.gradient_accumulation_steps
+        self.log_iters = self.log_iters * args.gradient_accumulation_steps
         logger.info("***** Running training *****")
         logger.info(f"  Num text examples = {len(dataset)}")
         logger.info(f"  Num real text-image examples = {len(real_dataset)}")
@@ -419,7 +420,8 @@ class Trainer:
                 generator_loss += generator_loss_dict["gen_cls_loss"] * self.gen_cls_loss_weight / self.gradient_accumulation_steps
  
             self.accelerator.backward(generator_loss)
-            generator_grad_norm = self.accelerator.clip_grad_norm_(self.model.feedforward_model.parameters(), self.max_grad_norm)
+            if self.accelerator.sync_gradients:
+                generator_grad_norm = self.accelerator.clip_grad_norm_(self.model.feedforward_model.parameters(), self.max_grad_norm)
 
             if self.step % self.gradient_accumulation_steps == 0:
                 self.optimizer_generator.step()
@@ -450,7 +452,8 @@ class Trainer:
             guidance_loss += guidance_loss_dict["guidance_cls_loss"] * self.guidance_cls_loss_weight / self.gradient_accumulation_steps
 
         self.accelerator.backward(guidance_loss)
-        guidance_grad_norm = self.accelerator.clip_grad_norm_(self.model.guidance_model.parameters(), self.max_grad_norm)
+        if self.accelerator.sync_gradients:
+            guidance_grad_norm = self.accelerator.clip_grad_norm_(self.model.guidance_model.parameters(), self.max_grad_norm)
         if self.step % self.gradient_accumulation_steps == 0:
             self.optimizer_guidance.step()
             self.optimizer_guidance.zero_grad()
@@ -652,6 +655,8 @@ class Trainer:
                     hist_pred_realism_on_real = draw_probability_histogram(pred_realism_on_real.cpu().numpy())
 
                     real_image = log_dict['real_image']
+                    import IPython; IPython.embed()
+                    real_image = self.model.decode_image(real_image) # from latents to image
                     real_image_grid = prepare_images_for_saving(real_image, resolution=self.resolution, grid_size=self.grid_size)
 
                     data_dict.update(
