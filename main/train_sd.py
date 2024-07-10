@@ -655,7 +655,7 @@ class Trainer:
                     hist_pred_realism_on_real = draw_probability_histogram(pred_realism_on_real.cpu().numpy())
 
                     real_image = log_dict['real_image']
-                    import IPython; IPython.embed()
+                    # import IPython; IPython.embed()
                     real_image = self.model.decode_image(real_image) # from latents to image
                     real_image_grid = prepare_images_for_saving(real_image, resolution=self.resolution, grid_size=self.grid_size)
 
