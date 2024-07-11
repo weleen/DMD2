@@ -2,13 +2,13 @@ export CHECKPOINT_PATH=$1
 export WANDB_ENTITY=$2
 export WANDB_PROJECT=$3
 
-accelerate launch --config_file accelerate_configs/default_config.yaml --num_processes 1 main/train_sd.py \
+accelerate launch --config_file accelerate_configs/default_config.yaml main/train_sd.py \
     --generator_lr 5e-7  \
     --guidance_lr 5e-7 \
     --train_iters 10000 \
-    --output_path $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_resume_accum_3/output \
-    --log_path $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_resume_accum_3/log \
-    --cache_dir $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_resume_accum_3/cache \
+    --output_path $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3/output \
+    --log_path $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3/log \
+    --cache_dir $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3/cache \
     --batch_size 32 \
     --grid_size 2 \
     --initialie_generator --log_iters 1000 \
@@ -24,7 +24,7 @@ accelerate launch --config_file accelerate_configs/default_config.yaml --num_pro
     --wandb_iters 50 \
     --wandb_entity $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
-    --wandb_name "laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_resume_accum_3"  \
+    --wandb_name "laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3"  \
     --use_fp16 \
     --log_loss \
     --dfake_gen_update_ratio 10 \
@@ -35,5 +35,5 @@ accelerate launch --config_file accelerate_configs/default_config.yaml --num_pro
     --guidance_cls_loss_weight 1e-2 \
     --diffusion_gan \
     --diffusion_gan_max_timestep 1000 \
-    --ckpt_only_path $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch/cache/time_1719445173_seed10/checkpoint_model_110000 \
+    --ckpt_only_path $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch_gradient_accum_3/cache/time_1719753487_seed10/checkpoint_model_102000 \
     --gradient_accumulation_steps 8

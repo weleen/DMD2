@@ -20,4 +20,4 @@ python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_
     --model_id "runwayml/stable-diffusion-v1-5" \
     --pred_eps 
 
-# bash experiments/sdv1.5/test_laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch.sh log/sdv15 yimingwu0 DMD2
+# bash experiments/sdv1.5/test_laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch.sh log/sdv15 yimingwu0 DMD2_test

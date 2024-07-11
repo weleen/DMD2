@@ -11,7 +11,7 @@ accelerate launch --config_file accelerate_configs/default_config.yaml main/trai
     --cache_dir $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch_gradient_accum_3/cache \
     --batch_size 96 \
     --grid_size 2 \
-    --initialie_generator --log_iters 3000 \
+    --initialie_generator --log_iters 1000 \
     --resolution 512 \
     --latent_resolution 64 \
     --seed 10 \

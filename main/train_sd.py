@@ -46,9 +46,9 @@ class Trainer:
             dispatch_batches=False
         )
         set_seed(args.seed + accelerator.process_index)
-        logger.info(f"args: {args}", main_process_only=True)
+        print(f"args: {args}")
 
-        logger.info(accelerator.state)
+        print(accelerator.state)
 
         if accelerator.is_main_process:
             self.output_path = os.path.join(args.output_path, f"time_{int(time.time())}_seed{args.seed}")
@@ -63,12 +63,12 @@ class Trainer:
             try:
                 run = wandb.init(config=args, dir=self.log_path, **{"mode": args.wandb_mode, "entity": args.wandb_entity, "project": args.wandb_project})
             except Exception as e:
-                logger.info(f"Failed to initialize wandb: {e}")
+                print(f"Failed to initialize wandb: {e}")
                 run = wandb.init(config=args, dir=self.log_path, **{"mode": "offline"})
 
             wandb.run.log_code(".")
             wandb.run.name = args.wandb_name
-            logger.info(f"run dir: {run.dir}")
+            print(f"run dir: {run.dir}")
             self.wandb_folder = run.dir
             os.makedirs(self.wandb_folder, exist_ok=True)
 
@@ -86,13 +86,13 @@ class Trainer:
             ckpt_path = args.ckpt_only_path if args.ckpt_only_path is not None else args.resume
             if accelerator.is_main_process:
                 if args.ckpt_only_path is not None:
-                    logger.info(f"loading ckpt only from {args.ckpt_only_path}")
+                    print(f"loading ckpt only from {args.ckpt_only_path}")
                 else:
-                    logger.info(f"resuming from {args.resume}")
+                    print(f"resuming from {args.resume}")
             generator_path = os.path.join(ckpt_path, "pytorch_model.bin")
             guidance_path = os.path.join(ckpt_path, "pytorch_model_1.bin")
-            logger.info(self.model.feedforward_model.load_state_dict(torch.load(generator_path, map_location="cpu"), strict=False))
-            logger.info(self.model.guidance_model.load_state_dict(torch.load(guidance_path, map_location="cpu"), strict=False))
+            print(self.model.feedforward_model.load_state_dict(torch.load(generator_path, map_location="cpu"), strict=False))
+            print(self.model.guidance_model.load_state_dict(torch.load(guidance_path, map_location="cpu"), strict=False))
             if args.resume is not None:
                 self.step = int(ckpt_path.replace("/", "").split("_")[-1])
 
@@ -102,8 +102,8 @@ class Trainer:
 
         if args.generator_ckpt_path is not None:
             if accelerator.is_main_process:
-                logger.info(f"loading generator ckpt from {args.generator_ckpt_path}")
-            logger.info(self.model.feedforward_model.load_state_dict(torch.load(args.generator_ckpt_path, map_location="cpu"), strict=True))
+                print(f"loading generator ckpt from {args.generator_ckpt_path}")
+            print(self.model.feedforward_model.load_state_dict(torch.load(args.generator_ckpt_path, map_location="cpu"), strict=True))
 
         self.sdxl = args.sdxl 
         
@@ -192,7 +192,7 @@ class Trainer:
             guidance_path = os.path.join(args.output_path, f"checkpoint_model_{self.step:06d}", "pytorch_model_1.bin")
 
             if accelerator.is_main_process:
-                logger.info(f"Saving current model to {args.output_path} to fix fsdp hybrid sharding's parameter mismatch across nodes")
+                print(f"Saving current model to {args.output_path} to fix fsdp hybrid sharding's parameter mismatch across nodes")
                 os.makedirs(os.path.join(args.output_path, f"checkpoint_model_{self.step:06d}"), exist_ok=True)
                 torch.save(self.model.feedforward_model.state_dict(), generator_path)
                 torch.save(self.model.guidance_model.state_dict(), guidance_path)
@@ -200,11 +200,11 @@ class Trainer:
             accelerator.wait_for_everyone()
             generator_path = os.path.join(args.output_path, f"checkpoint_model_{self.step:06d}", "pytorch_model.bin")
             guidance_path = os.path.join(args.output_path, f"checkpoint_model_{self.step:06d}", "pytorch_model_1.bin")
-            logger.info(self.model.feedforward_model.load_state_dict(torch.load(generator_path, map_location="cpu"), strict=True))
-            logger.info(self.model.guidance_model.load_state_dict(torch.load(guidance_path, map_location="cpu"), strict=True))
+            print(self.model.feedforward_model.load_state_dict(torch.load(generator_path, map_location="cpu"), strict=True))
+            print(self.model.guidance_model.load_state_dict(torch.load(guidance_path, map_location="cpu"), strict=True))
 
             if accelerator.is_main_process:
-                logger.info("reloading done")
+                print("reloading done")
 
         if self.fsdp:
             # the self.model is not wrapped in fsdp, only its two subnetworks are wrapped 
@@ -275,8 +275,6 @@ class Trainer:
         self.accelerator = accelerator
         self.batch_size = args.batch_size
         self.resolution = args.resolution 
-        self.log_iters = args.log_iters
-        self.wandb_iters = args.wandb_iters
         self.latent_resolution = args.latent_resolution
         self.grid_size = args.grid_size
         self.log_loss = args.log_loss
@@ -290,14 +288,15 @@ class Trainer:
         # training info
         total_batch_size = args.batch_size * accelerator.num_processes * args.gradient_accumulation_steps
         self.train_iters = args.train_iters * args.gradient_accumulation_steps
-        self.log_iters = self.log_iters * args.gradient_accumulation_steps
-        logger.info("***** Running training *****")
-        logger.info(f"  Num text examples = {len(dataset)}")
-        logger.info(f"  Num real text-image examples = {len(real_dataset)}")
-        logger.info(f"  Instantaneous batch size per device = {args.batch_size}")
-        logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
-        logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
-        logger.info(f"  Total optimization steps = {args.train_iters}")
+        self.log_iters = args.log_iters * args.gradient_accumulation_steps
+        self.wandb_iters = args.wandb_iters * args.gradient_accumulation_steps
+        print("***** Running training *****")
+        print(f"  Num text examples = {len(dataset)}")
+        print(f"  Num real text-image examples = {len(real_dataset)}")
+        print(f"  Instantaneous batch size per device = {args.batch_size}")
+        print(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
+        print(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
+        print(f"  Total optimization steps = {args.train_iters}")
 
         if args.checkpoint_path is not None:
             self.load(args.checkpoint_path)
@@ -316,8 +315,8 @@ class Trainer:
     def load(self, checkpoint_path):
         # this is used for non-fsdp models.
         self.step = int(checkpoint_path.replace("/", "").split("_")[-1])
-        logger.info(self.accelerator.load_state(checkpoint_path, strict=False))
-        self.accelerator.logger.info(f"Loaded checkpoint from {checkpoint_path}")
+        print(self.accelerator.load_state(checkpoint_path, strict=False))
+        self.accelerator.print(f"Loaded checkpoint from {checkpoint_path}")
 
     def save(self):
         # NOTE: we save the checkpoints to two places 
@@ -334,7 +333,7 @@ class Trainer:
         if self.accelerator.is_main_process:
             output_path = os.path.join(self.output_path, f"checkpoint_model_{self.step:06d}")
             os.makedirs(output_path, exist_ok=True)
-            logger.info(f"start saving checkpoint to {output_path}")
+            print(f"start saving checkpoint to {output_path}")
 
             if self.fsdp: 
                 torch.save(feedforward_state_dict, os.path.join(output_path, f"pytorch_model.bin"))
@@ -366,7 +365,7 @@ class Trainer:
             if len(checkpoints) > self.max_checkpoint:
                 for folder in checkpoints[:-self.max_checkpoint]:
                     shutil.rmtree(os.path.join(self.cache_dir, folder))
-            logger.info("done saving")
+            print("done saving")
         torch.cuda.empty_cache()
 
     def train_one_step(self):
@@ -414,22 +413,35 @@ class Trainer:
 
         if COMPUTE_GENERATOR_GRADIENT:
             if not self.args.gan_alone:
-                generator_loss += generator_loss_dict["loss_dm"] * self.args.dm_loss_weight / self.gradient_accumulation_steps
+                generator_loss += generator_loss_dict["loss_dm"] * self.args.dm_loss_weight
 
             if self.cls_on_clean_image and self.gen_cls_loss:
-                generator_loss += generator_loss_dict["gen_cls_loss"] * self.gen_cls_loss_weight / self.gradient_accumulation_steps
- 
-            self.accelerator.backward(generator_loss)
-            if self.accelerator.sync_gradients:
-                generator_grad_norm = self.accelerator.clip_grad_norm_(self.model.feedforward_model.parameters(), self.max_grad_norm)
+                generator_loss += generator_loss_dict["gen_cls_loss"] * self.gen_cls_loss_weight
 
-            if self.step % self.gradient_accumulation_steps == 0:
-                self.optimizer_generator.step()
+            self.accelerator.backward(generator_loss)
+            generator_grad_norm = self.accelerator.clip_grad_norm_(self.model.feedforward_model.parameters(), self.max_grad_norm)
+            self.optimizer_generator.step()
+            
+            # if we also compute gan loss, the classifier may also receive gradient 
+            # zero out guidance model's gradient avoids undesired gradient accumulation
+            self.optimizer_generator.zero_grad() 
+            self.optimizer_guidance.zero_grad()
+
+            # # Trigger gradient sync only every gradient_accumulation_steps * dfake_gen_update_ratio steps
+            # if self.step % self.gradient_accumulation_steps % self.dfake_gen_update_ratio != 0:
+            #     with self.accelerator.no_sync(self.model.feedforward_model):
+            #         self.accelerator.backward(generator_loss)
+            #         generator_grad_norm = self.accelerator.clip_grad_norm_(self.model.feedforward_model.parameters(), self.max_grad_norm)
+            # else:
+            #     self.accelerator.backward(generator_loss)
+            #     if self.accelerator.sync_gradients:
+            #         generator_grad_norm = self.accelerator.clip_grad_norm_(self.model.feedforward_model.parameters(), self.max_grad_norm)
+            #     self.optimizer_generator.step()
                 
-                # if we also compute gan loss, the classifier may also receive gradient 
-                # zero out guidance model's gradient avoids undesired gradient accumulation
-                self.optimizer_generator.zero_grad() 
-                self.optimizer_guidance.zero_grad()
+            #     # if we also compute gan loss, the classifier may also receive gradient 
+            #     # zero out guidance model's gradient avoids undesired gradient accumulation
+            #     self.optimizer_generator.zero_grad() 
+            #     self.optimizer_guidance.zero_grad()
 
         self.scheduler_generator.step()
 
@@ -446,19 +458,30 @@ class Trainer:
 
         guidance_loss = 0 
 
-        guidance_loss += guidance_loss_dict["loss_fake_mean"] / self.gradient_accumulation_steps
+        guidance_loss += guidance_loss_dict["loss_fake_mean"]
 
         if self.cls_on_clean_image:
-            guidance_loss += guidance_loss_dict["guidance_cls_loss"] * self.guidance_cls_loss_weight / self.gradient_accumulation_steps
+            guidance_loss += guidance_loss_dict["guidance_cls_loss"] * self.guidance_cls_loss_weight
 
         self.accelerator.backward(guidance_loss)
-        if self.accelerator.sync_gradients:
-            guidance_grad_norm = self.accelerator.clip_grad_norm_(self.model.guidance_model.parameters(), self.max_grad_norm)
-        if self.step % self.gradient_accumulation_steps == 0:
-            self.optimizer_guidance.step()
-            self.optimizer_guidance.zero_grad()
-            self.optimizer_generator.zero_grad() # zero out the generator's gradient as well
-            self.scheduler_guidance.step()
+        guidance_grad_norm = self.accelerator.clip_grad_norm_(self.model.guidance_model.parameters(), self.max_grad_norm)
+        self.optimizer_guidance.step()
+        self.optimizer_guidance.zero_grad()
+        self.optimizer_generator.zero_grad() # zero out the generator's gradient as well
+        self.scheduler_guidance.step()
+
+        # if self.step % self.gradient_accumulation_steps != 0:
+        #     with self.accelerator.no_sync(self.model.guidance_model):
+        #         self.accelerator.backward(guidance_loss)
+        #         guidance_grad_norm = self.accelerator.clip_grad_norm_(self.model.guidance_model.parameters(), self.max_grad_norm)
+        # else:
+        #     self.accelerator.backward(guidance_loss)
+        #     if self.accelerator.sync_gradients:
+        #         guidance_grad_norm = self.accelerator.clip_grad_norm_(self.model.guidance_model.parameters(), self.max_grad_norm)
+        #     self.optimizer_guidance.step()
+        #     self.optimizer_guidance.zero_grad()
+        #     self.optimizer_generator.zero_grad() # zero out the generator's gradient as well
+        #     self.optimizer_generator.zero_grad()
 
         # combine the two dictionaries 
         loss_dict = {**generator_loss_dict, **guidance_loss_dict}
@@ -538,8 +561,7 @@ class Trainer:
                 step=self.step
             )
             self.writer.add_scalars("loss", wandb_loss_dict, self.step)
-            logger.info(f'step: {self.step}, ' + ', '.join([f'{k}: {v}' for k, v in wandb_loss_dict.items()]))
-            logger.info(f'step: {self.step}, ' + ', '.join([f'{k}: {v}' for k, v in wandb_loss_dict.items()]), main_process_only=True)
+            print(f'step: {self.step}, ' + ', '.join([f'{k}: {v}' for k, v in wandb_loss_dict.items()]))
 
         if visual:
             if not self.args.gan_alone:
@@ -656,7 +678,7 @@ class Trainer:
 
                     real_image = log_dict['real_image']
                     # import IPython; IPython.embed()
-                    real_image = self.model.decode_image(real_image) # from latents to image
+                    real_image = self.model.decode_image(real_image[:self.grid_size * self.grid_size].detach().half()) if self.args.use_fp16 else self.model.decode_image(real_image[:self.grid_size * self.grid_size].detach()) # from latents to image
                     real_image_grid = prepare_images_for_saving(real_image, resolution=self.resolution, grid_size=self.grid_size)
 
                     data_dict.update(
@@ -681,18 +703,19 @@ class Trainer:
                 )
                 for key, value in tensorboard_dict.items():
                     if 'grid' not in key and ('mean' in key or 'std' in key or 'norm' in key or 'loss' in key):
-                        # logger.info('writing scalar {}'.format(key)) 
+                        # print('writing scalar {}'.format(key)) 
                         self.writer.add_scalar(key, value, self.step)
                     else:
                         if isinstance(value, (torch.Tensor, np.ndarray)):
-                            # logger.info('writing image {}'.format(key))
+                            # print('writing image {}'.format(key))
                             self.writer.add_image(key, value.transpose(2, 0, 1), self.step)
         
         self.accelerator.wait_for_everyone()
 
     def train(self):
-        for index in tqdm.tqdm(range(self.step, self.train_iters)): 
-            self.train_one_step()
+        for index in tqdm.tqdm(range(self.step, self.train_iters)):
+            with self.accelerator.accumulate([self.model.feedforward_model, self.model.guidance_model]):
+                self.train_one_step()
             if (not self.no_save) and self.step % self.log_iters == 0:
                 self.save()
 
@@ -796,7 +819,7 @@ def parse_args():
     if env_local_rank != -1 and env_local_rank != args.local_rank:
         args.local_rank = env_local_rank
 
-    # assert args.gradient_accumulation_steps == 1, "grad accumulation not supported yet"
+    assert args.gradient_accumulation_steps == 1 or (args.gradient_accumulation_steps > 1 and not args.fsdp), "grad accumulation not supported in fsdp yet, check https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.no_sync"
 
     assert not (args.fsdp and args.gradient_checkpointing), "currently, we don't support both options. open an issue for details."
 

@@ -3,8 +3,8 @@ export CHECKPOINT_PATH=$1
 export WANDB_ENTITY=$2
 export WANDB_PROJECT=$3
 
-python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch_gradient_accum_3/cache/time_1719753487_seed10 \
-    --wandb_name test_laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch_grad_accum_3 \
+python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3/cache/time_1720648998_seed10 \
+    --wandb_name test_laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3 \
     --wandb_entity $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
     --image_resolution 512 \
@@ -20,4 +20,4 @@ python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_
     --model_id "runwayml/stable-diffusion-v1-5" \
     --pred_eps 
 
-# bash experiments/sdv1.5/test_laion6.25_sd_baseline_1node_guidance1.75_lr1e-5_seed10_dfake10_from_scratch.sh log/sdv15 yimingwu0 DMD2_test
+# bash experiments/sdv1.5/test_laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3.sh log/sdv15 yimingwu0 DMD2_test

@@ -388,7 +388,7 @@ class SDGuidance(nn.Module):
             "pred_realism_on_fake": torch.sigmoid(pred_realism_on_fake).squeeze(dim=1).detach()
         }
 
-        classification_loss = F.softplus(pred_realism_on_fake).mean() + F.softplus(-pred_realism_on_real).mean()
+        classification_loss = F.softplus(pred_realism_on_fake).mean() + F.softplus(-pred_realism_on_real).mean()  # -log(sigmoid(pred_realism_on_real))
         loss_dict = {
             "guidance_cls_loss": classification_loss
         }
