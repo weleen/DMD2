@@ -41,7 +41,7 @@ def create_generator(checkpoint_path, base_model=None):
 
             counter += 1 
 
-            if counter > 100:
+            if counter > 1000:
                 return None
 
     # # unwrap the generator 

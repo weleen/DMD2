@@ -3,7 +3,7 @@ export CHECKPOINT_PATH=$1
 export WANDB_ENTITY=$2
 export WANDB_PROJECT=$3
 
-python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3/cache/time_1720648998_seed10 \
+python main/test_folder_sd.py   --folder $CHECKPOINT_PATH/laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3/cache/time_1720648996_seed10 \
     --wandb_name test_laion6.25_sd_baseline_1node_guidance1.75_lr5e-7_seed10_dfake10_diffusion1000_gan1e-3_noode_resume_fixdata_accum_3 \
     --wandb_entity $WANDB_ENTITY \
     --wandb_project $WANDB_PROJECT \
