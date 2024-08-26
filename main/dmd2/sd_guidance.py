@@ -1,6 +1,6 @@
-from main.utils import get_x0_from_noise, DummyNetwork, NoOpContext
+from main.dmd2.utils import get_x0_from_noise, DummyNetwork, NoOpContext
 from diffusers import UNet2DConditionModel, DDIMScheduler
-from main.sd_unet_forward import classify_forward
+from main.dmd2.sd_unet_forward import classify_forward
 import torch.nn.functional as F
 import torch.nn as nn
 import torch

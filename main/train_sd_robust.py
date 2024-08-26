@@ -52,7 +52,7 @@ from diffusers.utils.hub_utils import load_or_create_model_card, populate_model_
 from diffusers.utils.import_utils import is_xformers_available
 from diffusers.utils.torch_utils import is_compiled_module
 
-from main.sd_unet_stochastic_depth import UNet2DConditionalModelStochasticDepth
+from main.robust_training.sd_unet_stochastic_depth import UNet2DConditionalModelStochasticDepth
 
 if is_wandb_available():
     import wandb

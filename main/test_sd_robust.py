@@ -1,4 +1,4 @@
-from diffusers import UNet2DConditionModel, AutoencoderKL, StableDiffusionPipeline, DDPMScheduler
+from diffusers import AutoencoderKL, StableDiffusionPipeline, DDPMScheduler
 from main.coco_eval.coco_evaluator import evaluate_model, compute_clip_score
 from transformers import CLIPTokenizer, CLIPTextModel
 from accelerate.utils import ProjectConfiguration
@@ -17,11 +17,14 @@ import glob
 import time 
 import os 
 
+from .robust_training.sd_unet_stochastic_depth import UNet2DConditionalModelStochasticDepth
+
+
 logger = get_logger(__name__, log_level="INFO")
 
 def create_generator(checkpoint_path, base_model=None):
     if base_model is None:
-        generator = UNet2DConditionModel.from_pretrained(
+        generator = UNet2DConditionalModelStochasticDepth.from_pretrained(
             "runwayml/stable-diffusion-v1-5",
             subfolder="unet"
         ).float()

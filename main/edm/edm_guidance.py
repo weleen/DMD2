@@ -1,10 +1,11 @@
 from main.edm.edm_network import get_edm_network
 import torch.nn.functional as F
 import torch.nn as nn
-import dnnlib 
 import pickle 
 import torch
 import copy 
+
+from third_party.edm import dnnlib
 
 def get_sigmas_karras(n, sigma_min, sigma_max, rho=7.0):
     # from https://github.com/crowsonkb/k-diffusion

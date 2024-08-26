@@ -1,7 +1,7 @@
 from diffusers import StableDiffusionXLPipeline, EulerDiscreteScheduler
 from main.sdxl.sdxl_text_encoder import SDXLTextEncoder
 from accelerate.utils import ProjectConfiguration
-from main.utils import SDTextDataset
+from main.dmd2.utils import SDTextDataset
 from transformers import AutoTokenizer
 from accelerate.utils import set_seed
 from accelerate import Accelerator

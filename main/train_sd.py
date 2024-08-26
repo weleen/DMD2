@@ -1,12 +1,12 @@
 import matplotlib
 matplotlib.use('Agg')
-from main.utils import prepare_images_for_saving, draw_valued_array, draw_probability_histogram
-from main.sd_image_dataset import SDImageDatasetLMDB
+from main.dmd2.utils import prepare_images_for_saving, draw_valued_array, draw_probability_histogram
+from main.dmd2.sd_image_dataset import SDImageDatasetLMDB
 from transformers import CLIPTokenizer, AutoTokenizer
 from accelerate.utils import ProjectConfiguration
 from diffusers.optimization import get_scheduler
-from main.utils import SDTextDataset, cycle 
-from main.sd_unified_model import SDUniModel
+from main.dmd2.utils import SDTextDataset, cycle 
+from main.dmd2.sd_unified_model import SDUniModel
 from accelerate.utils import set_seed
 from accelerate import Accelerator
 from accelerate.logging import get_logger

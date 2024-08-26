@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
-from main.utils import prepare_images_for_saving, draw_valued_array, cycle, draw_probability_histogram
+from main.dmd2.utils import prepare_images_for_saving, draw_valued_array, cycle, draw_probability_histogram
 from accelerate.utils import ProjectConfiguration
 from diffusers.optimization import get_scheduler
 from main.data.lmdb_dataset import LMDBDataset

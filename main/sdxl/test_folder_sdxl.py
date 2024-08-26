@@ -4,9 +4,9 @@ from main.sdxl.sdxl_text_encoder import SDXLTextEncoder
 from accelerate.utils import ProjectConfiguration
 from huggingface_hub import hf_hub_download
 from accelerate.logging import get_logger
-from main.utils import create_image_grid
+from main.dmd2.utils import create_image_grid
 from safetensors.torch import load_file
-from main.utils import SDTextDataset
+from main.dmd2.utils import SDTextDataset
 from transformers import AutoTokenizer
 from accelerate.utils import set_seed
 from accelerate import Accelerator

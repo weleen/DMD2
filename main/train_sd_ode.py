@@ -1,11 +1,11 @@
 import matplotlib
 matplotlib.use('Agg')
-from main.utils import get_x0_from_noise, NoOpContext, cycle 
+from main.dmd2.utils import get_x0_from_noise, NoOpContext, cycle 
 from diffusers import UNet2DConditionModel, DDIMScheduler
 from main.sdxl.sdxl_ode_dataset import SDXLODEDatasetLMDB
 from diffusers import AutoencoderKL, AutoencoderTiny
 from accelerate.utils import ProjectConfiguration
-from main.utils import prepare_images_for_saving
+from main.dmd2.utils import prepare_images_for_saving
 from diffusers.optimization import get_scheduler
 from accelerate.logging import get_logger
 from transformers import CLIPTextModel

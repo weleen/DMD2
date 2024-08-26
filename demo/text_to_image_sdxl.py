@@ -1,6 +1,6 @@
 from diffusers import UNet2DConditionModel, AutoencoderKL, DDIMScheduler, AutoencoderTiny
 from main.sdxl.sdxl_text_encoder import SDXLTextEncoder
-from main.utils import get_x0_from_noise
+from main.dmd2.utils import get_x0_from_noise
 from transformers import AutoTokenizer
 from accelerate import Accelerator
 import gradio as gr    

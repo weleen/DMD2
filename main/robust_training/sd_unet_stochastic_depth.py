@@ -14,7 +14,7 @@ from diffusers.models.activations import get_activation
 from diffusers.utils import logging, is_accelerate_available, is_torch_version, deprecate, _add_variant, scale_lora_layers, unscale_lora_layers, _get_model_file, __version__, FLAX_WEIGHTS_NAME, USE_PEFT_BACKEND, SAFETENSORS_WEIGHTS_NAME, WEIGHTS_NAME
 from diffusers.models.modeling_utils import load_state_dict, load_model_dict_into_meta
 
-from .robust_training.unet_2d_blocks_stochastic_depth import get_down_block, get_mid_block, get_up_block
+from .unet_2d_blocks_stochastic_depth import get_down_block, get_mid_block, get_up_block
 
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name

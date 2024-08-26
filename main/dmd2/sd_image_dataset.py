@@ -1,4 +1,4 @@
-from main.utils import retrieve_row_from_lmdb, get_array_shape_from_lmdb
+from main.dmd2.utils import retrieve_row_from_lmdb, get_array_shape_from_lmdb
 from torch.utils.data import Dataset
 import numpy as np 
 import torch

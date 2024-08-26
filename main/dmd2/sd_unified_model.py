@@ -1,8 +1,8 @@
 # A single unified model that wraps both the generator and discriminator
 from diffusers import UNet2DConditionModel, AutoencoderKL, AutoencoderTiny
-from main.utils import get_x0_from_noise, NoOpContext
+from main.dmd2.utils import get_x0_from_noise, NoOpContext
 from main.sdxl.sdxl_text_encoder import SDXLTextEncoder
-from main.sd_guidance import SDGuidance
+from main.dmd2.sd_guidance import SDGuidance
 from transformers import CLIPTextModel
 from accelerate.utils import broadcast
 from peft import LoraConfig
